@@ -20,7 +20,7 @@ public class CircleView extends View {
     float circleWidth;
     int bgColor;
     int progressColor;
-    int arc = 30;
+    float arc = 30;
     float offsetAgree;
     boolean contain;
 
@@ -134,7 +134,8 @@ public class CircleView extends View {
         arc = (int) angle;
         arc = arc + (30 - arc % 30);
         arc = Math.max(arc, 30);
-        arc = (int) Math.min(arc, 360 - offsetAgree * 2);
+        arc = arc - offsetAgree * 2;
+//        arc = (int) Math.min(arc, 360 - offsetAgree * 2);
         invalidate();
     }
 }
