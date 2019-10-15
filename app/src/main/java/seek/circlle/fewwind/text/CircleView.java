@@ -1,14 +1,15 @@
 package seek.circlle.fewwind.text;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.SweepGradient;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
@@ -20,9 +21,12 @@ public class CircleView extends View {
     float circleWidth;
     int bgColor;
     int progressColor;
-    float arc = 30;
+    float arc = 180;
     float offsetAgree;
     boolean contain;
+    Path mPath = new Path();
+    Paint pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    ValueAnimator valueAnimator;
 
     public CircleView(Context context) {
         this(context, null);
@@ -36,6 +40,23 @@ public class CircleView extends View {
         mPaint.setStyle(Paint.Style.STROKE);
         bgColor = Color.parseColor("#DCF7F3");
         progressColor = Color.parseColor("#35D1C9");
+
+        pathPaint.setStyle(Paint.Style.STROKE);
+        pathPaint.setColor(Color.BLACK);
+        pathPaint.setStrokeWidth(TypedValue.applyDimension(COMPLEX_UNIT_DIP, 4, context.getResources().getDisplayMetrics()));
+        valueAnimator = ValueAnimator.ofFloat(0, 1f).setDuration(1600);
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float value = (float) animation.getAnimatedValue();
+                mPath.reset();
+                mPath.moveTo(0, getMeasuredHeight() / 2);
+                mPath.quadTo(getMeasuredHeight() / 4, value * getMeasuredHeight(), getMeasuredHeight() / 2, getMeasuredHeight() / 2);
+                mPath.quadTo(getMeasuredHeight() * 3 / 4, getMeasuredHeight() - value * getMeasuredHeight(), getMeasuredHeight(), getMeasuredHeight() / 2);
+                invalidate();
+            }
+        });
+        setProgress(150d);
     }
 
     SweepGradient mSweepGradient;
@@ -50,12 +71,13 @@ public class CircleView extends View {
         mPaint.setStrokeCap(Paint.Cap.ROUND);
         mPaint.setShader(mSweepGradient);
         canvas.drawArc(circleWidth / 2, circleWidth / 2, getMeasuredWidth() - circleWidth / 2, getMeasuredHeight() - circleWidth / 2, 270 + offsetAgree, arc, false, mPaint);
+
+        canvas.drawPath(mPath, pathPaint);
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        Log.w("Fewwind", getMeasuredHeight() + "<>");
         int width = Math.min(getMeasuredWidth(), getMeasuredHeight());
         setMeasuredDimension(width, width);
         mSweepGradient = new SweepGradient(getMeasuredHeight() / 2,
@@ -65,6 +87,8 @@ public class CircleView extends View {
         matrix.setRotate(-90, getMeasuredHeight() / 2, getMeasuredHeight() / 2);
         mSweepGradient.setLocalMatrix(matrix);
         offsetAgree = (float) (90 - Math.atan2(getMeasuredHeight() / 2 - circleWidth / 2, circleWidth / 2) / (Math.PI / 180));
+        valueAnimator.start();
+        valueAnimator.setRepeatCount(10);
     }
 
     @Override
@@ -88,10 +112,10 @@ public class CircleView extends View {
     }
 
     boolean isContain(int x, int y) {
-        int rudioBig = getMeasuredHeight() / 2;
-        float rudioSamll = rudioBig - circleWidth;
-        int rudio = (int) Math.sqrt(Math.pow(Math.abs(x - rudioBig), 2) + Math.pow(Math.abs(y - rudioBig), 2));
-        return rudio >= rudioSamll && rudio <= rudioBig;
+        int radiusBig = getMeasuredHeight() / 2;
+        float radiusSamll = radiusBig - circleWidth;
+        int radius = (int) Math.sqrt(Math.pow(Math.abs(x - radiusBig), 2) + Math.pow(Math.abs(y - radiusBig), 2));
+        return radius >= radiusSamll && radius <= radiusBig;
     }
 
     float thumbX;
@@ -132,7 +156,8 @@ public class CircleView extends View {
 
     public void setProgress(double angle) {
         arc = (int) angle;
-        arc = arc + (30 - arc % 30);
+        float v = arc % 30;
+        if (v != 0) arc = arc + (30 - v);
         arc = Math.max(arc, 30);
         arc = arc - offsetAgree * 2;
 //        arc = (int) Math.min(arc, 360 - offsetAgree * 2);
